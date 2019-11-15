@@ -1817,9 +1817,12 @@ def ensureArtifactsExist(cache, cachekey, reason, objectFile, compilerResult, ex
     return returnCode, compilerOutput, compilerStderr, cleanupRequired
 
 
-if __name__ == '__main__':
+def mainWrapper():
     if 'CLCACHE_PROFILE' in os.environ:
         INVOCATION_HASH = getStringHash(','.join(sys.argv))
-        cProfile.run('main()', filename='clcache-{}.prof'.format(INVOCATION_HASH))
+        cProfile.run('import clcache\nclcache.__main__.main()', filename='clcache-{}.prof'.format(INVOCATION_HASH))
     else:
         sys.exit(main())
+
+if __name__ == '__main__':
+    mainWrapper()
