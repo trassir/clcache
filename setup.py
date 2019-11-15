@@ -24,6 +24,7 @@ setup(
           'console_scripts': [
               'clcache = clcache.__main__:main',
               'clcache-server = clcache.server.__main__:main',
+              'clcache-report = clcache.showprofilereport:main'
           ]
     },
     setup_requires=[
