@@ -1693,21 +1693,33 @@ def scheduleJobs(cache: Any, compiler: str, cmdLine: List[str], environment: Any
 
     exitCode = 0
     cleanupRequired = False
-    with concurrent.futures.ThreadPoolExecutor(max_workers=jobCount(cmdLine)) as executor:
-        jobs = []
-        for (srcFile, srcLanguage), objFile in zip(sourceFiles, objectFiles):
-            jobCmdLine = baseCmdLine + [srcLanguage + srcFile]
-            jobs.append(executor.submit(
-                processSingleSource,
-                compiler, jobCmdLine, srcFile, objFile, environment))
-        for future in concurrent.futures.as_completed(jobs):
-            exitCode, out, err, doCleanup = future.result()
-            printTraceStatement("Finished. Exit code {0:d}".format(exitCode))
-            cleanupRequired |= doCleanup
-            printOutAndErr(out, err)
+    if os.getenv('CLCACHE_SINGLEFILE'):
+        assert len(sourceFiles) == 1
+        assert len(objectFiles) == 1
+        srcFile, srcLanguage = sourceFiles[0]
+        objFile = objectFiles[0]
+        jobCmdLine = baseCmdLine + [srcLanguage + srcFile]
+        exitCode, out, err, doCleanup = processSingleSource(
+            compiler, jobCmdLine, srcFile, objFile, environment)
+        printTraceStatement("Finished. Exit code {0:d}".format(exitCode))
+        cleanupRequired |= doCleanup
+        printOutAndErr(out, err)
+    else:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=jobCount(cmdLine)) as executor:
+            jobs = []
+            for (srcFile, srcLanguage), objFile in zip(sourceFiles, objectFiles):
+                jobCmdLine = baseCmdLine + [srcLanguage + srcFile]
+                jobs.append(executor.submit(
+                    processSingleSource,
+                    compiler, jobCmdLine, srcFile, objFile, environment))
+            for future in concurrent.futures.as_completed(jobs):
+                exitCode, out, err, doCleanup = future.result()
+                printTraceStatement("Finished. Exit code {0:d}".format(exitCode))
+                cleanupRequired |= doCleanup
+                printOutAndErr(out, err)
 
-            if exitCode != 0:
-                break
+                if exitCode != 0:
+                    break
 
     if cleanupRequired:
         cleanCache(cache)
