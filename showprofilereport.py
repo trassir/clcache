@@ -7,20 +7,35 @@
 # root directory of this project.
 #
 import os
+import argparse
 import fnmatch
 import pstats
 
-stats = pstats.Stats()
+def main():
+    stats = pstats.Stats()
 
-for basedir, _, filenames in os.walk(os.getcwd()):
-    for filename in filenames:
-        if fnmatch.fnmatch(filename, 'clcache-*.prof'):
-            path = os.path.join(basedir, filename)
-            print('Reading {}...'.format(path))
-            stats.add(path)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('directory', default=os.getcwd(), nargs='?')
+    parser.add_argument('--dump-aggregated', '-da')
+    parser.add_argument('--silent', action='store_true')
+    args = parser.parse_args()
 
-stats.strip_dirs()
-stats.sort_stats('cumulative')
-stats.print_stats()
-stats.print_callers()
+    for basedir, _, filenames in os.walk(args.directory):
+        for filename in filenames:
+            if fnmatch.fnmatch(filename, 'clcache-*.prof'):
+                path = os.path.join(basedir, filename)
+                if not args.silent:
+                    print('Reading {}...'.format(path))
+                stats.add(path)
 
+
+    stats.strip_dirs()
+    if args.dump_aggregated:
+        stats.dump_stats(args.dump_aggregated)
+    else:
+        stats.sort_stats('cumulative')
+        stats.print_stats()
+        stats.print_callers()
+
+if __name__ == "__main__":
+    main()
