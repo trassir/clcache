@@ -18,6 +18,7 @@ def main():
     parser.add_argument('directory', default=os.getcwd(), nargs='?')
     parser.add_argument('--dump-aggregated', '-da')
     parser.add_argument('--silent', action='store_true')
+    parser.add_argument('--perfile', action='store_true')
     args = parser.parse_args()
 
     for basedir, _, filenames in os.walk(args.directory):
@@ -26,16 +27,21 @@ def main():
                 path = os.path.join(basedir, filename)
                 if not args.silent:
                     print('Reading {}...'.format(path))
-                stats.add(path)
+                if args.perfile:
+                    print(f'{"-"*80}\n{path}:')
+                    pstats.Stats(path).sort_stats('cumulative').print_stats()
+                else:
+                    stats.add(path)
 
 
-    stats.strip_dirs()
-    if args.dump_aggregated:
-        stats.dump_stats(args.dump_aggregated)
-    else:
-        stats.sort_stats('cumulative')
-        stats.print_stats()
-        stats.print_callers()
+    if not args.perfile:
+        stats.strip_dirs()
+        if args.dump_aggregated:
+            stats.dump_stats(args.dump_aggregated)
+        else:
+            stats.sort_stats('cumulative')
+            stats.print_stats()
+            stats.print_callers()
 
 if __name__ == "__main__":
     main()
