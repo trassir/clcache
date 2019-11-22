@@ -1816,11 +1816,23 @@ def ensureArtifactsExist(cache, cachekey, reason, objectFile, compilerResult, ex
                 extraCallable()
     return returnCode, compilerOutput, compilerStderr, cleanupRequired
 
+class ProfilerError(Exception):
+    def __init__(self, returnCode):
+        self.returnCode = returnCode
 
 def mainWrapper():
     if 'CLCACHE_PROFILE' in os.environ:
         INVOCATION_HASH = getStringHash(','.join(sys.argv))
-        cProfile.run('import clcache\nclcache.__main__.main()', filename='clcache-{}.prof'.format(INVOCATION_HASH))
+        CALL_SCRIPT = '''
+import clcache
+returnCode = clcache.__main__.main()
+if returnCode != 0:
+    raise clcache.__main__.ProfilerError(returnCode)
+'''
+        try:
+            cProfile.run(CALL_SCRIPT, filename='clcache-{}.prof'.format(INVOCATION_HASH))
+        except ProfilerError as e:
+            sys.exit(e.returnCode)
     else:
         sys.exit(main())
 
