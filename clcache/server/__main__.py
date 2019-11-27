@@ -43,7 +43,10 @@ class HashCache:
 
     def _startWatching(self, dirname):
         ev = pyuv.fs.FSEvent(self._loop)
-        ev.start(dirname, 0, self._onPathChange)
+        try:
+            ev.start(dirname, 0, self._onPathChange)
+        except Exception as e:
+            raise RuntimeError('Could not start watching %s: %s' % (dirname, e))
         self._handlers.append(ev)
 
     def _onPathChange(self, handle, filename, events, error):
@@ -125,7 +128,7 @@ def onSigterm(handle, signum):
 
 
 def main():
-    logging.basicConfig(format='%(asctime)s [%(levelname)s]: %(message)s', level=logging.INFO)
+    logging.basicConfig(format='[CLCACHESRV] [%(levelname)s]: %(message)s', level=logging.INFO)
 
     parser = argparse.ArgumentParser(description='Server process for clcache to cache hash values of headers \
                                                   and observe them for changes.')

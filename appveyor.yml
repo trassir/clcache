@@ -131,6 +131,11 @@ on_success:
   - for /F %%i in ('python -c "import clcache; print(clcache.VERSION)"') do set CLCACHE_VERSION=%%i
   - "echo Version: %CLCACHE_VERSION"
   - ps: mv dist\clcache_main\clcache_main.exe dist\clcache_main\clcache.exe
+
+
+  - pyinstaller pyinstaller\clcache_server_main.py
+  - ps: mv dist\clcache_server_main\clcache_server_main.exe dist\clcache_main\clcache-server.exe
+
   - move dist\clcache_main clcache-%CLCACHE_VERSION%
 
   # Build the Chocolatey package
