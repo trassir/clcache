@@ -72,16 +72,16 @@ cache:
 build_script:
   - clcache --help
   - clcache -s
-  # - python clcachesrv.py
-  - pylint --rcfile=.pylintrc clcache\__main__.py
-  - pylint --rcfile=.pylintrc clcache\storage.py
-  - pylint --rcfile=.pylintrc tests\test_unit.py
-  - pylint --rcfile=.pylintrc --disable=no-member tests\test_integration.py
-  - pylint --rcfile=.pylintrc tests\test_performance.py
+  # # - python clcachesrv.py
+  # - pylint --rcfile=.pylintrc clcache\__main__.py
+  # - pylint --rcfile=.pylintrc clcache\storage.py
+  # - pylint --rcfile=.pylintrc tests\test_unit.py
+  # - pylint --rcfile=.pylintrc --disable=no-member tests\test_integration.py
+  # - pylint --rcfile=.pylintrc tests\test_performance.py
 
-  # Disable no-member test here to work around issue in Pylint 1.7.1
-  - pylint --rcfile=.pylintrc --disable=no-member clcache\server\__main__.py
-  
+  # # Disable no-member test here to work around issue in Pylint 1.7.1
+  # - pylint --rcfile=.pylintrc --disable=no-member clcache\server\__main__.py
+
   - mypy --ignore-missing-imports .
 
 test_script:
