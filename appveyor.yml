@@ -30,7 +30,7 @@ install:
 
   # Check Python version
   - python --version
-  
+
   # Upgrade the Python build tools
   - python -m pip install --upgrade pip setuptools wheel
 
@@ -39,7 +39,7 @@ install:
 
   # Install pytest
   - pip install pytest
-  
+
   # Install mypy
   - pip install mypy
 
@@ -49,7 +49,7 @@ install:
 
   # Install coverage plugin for pytest
   - pip install pytest-cov
-  
+
   # Install the package
   - pip install .
 
@@ -136,20 +136,20 @@ on_success:
   # Build the Chocolatey package
   - sed -i "s/{VERSION}/%CLCACHE_VERSION%/g" clcache.nuspec
   - choco pack
-  
+
   # Test the compiled extension
   - cd clcache-%CLCACHE_VERSION%
   - clcache.exe --help
   - clcache.exe -s
   - cd ..
-  
+
   # Test the chocolatey package
   - ps: ls clcache.${env:CLCACHE_VERSION}.nupkg
   - choco install "clcache.%CLCACHE_VERSION%.nupkg" --version=%CLCACHE_VERSION%
   - C:\ProgramData\chocolatey\bin\clcache.exe --help
   - C:\ProgramData\chocolatey\bin\clcache.exe -s
-  
-  # Publish artifacts  
+
+  # Publish artifacts
   - cd clcache-%CLCACHE_VERSION%
   - 7z a -y clcache-%CLCACHE_VERSION%.zip
   - move clcache-%CLCACHE_VERSION%.zip ..
