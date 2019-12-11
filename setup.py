@@ -22,7 +22,7 @@ setup(
     ],
     entry_points={
           'console_scripts': [
-              'clcache = clcache.__main__:main',
+              'clcache = clcache.__main__:mainWrapper',
               'clcache-server = clcache.server.__main__:main',
           ]
     },
