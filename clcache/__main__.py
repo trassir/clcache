@@ -26,7 +26,7 @@ import subprocess
 import sys
 import threading
 from tempfile import TemporaryFile
-from typing import Any, List, Tuple, Iterator
+from typing import Any, List, Tuple, Iterator, Dict
 from atomicwrites import atomic_write
 
 VERSION = "4.2.0-dev"
@@ -914,9 +914,15 @@ def getFileHashes(filePaths):
                 else:
                     raise
     else:
-        return [getFileHash(filePath) for filePath in filePaths]
+        return [getFileHashCached(filePath) for filePath in filePaths]
 
-
+knownHashes: Dict[str, str] = dict()
+def getFileHashCached(filePath):
+    if filePath in knownHashes:
+        return knownHashes[filePath]
+    c = getFileHash(filePath)
+    knownHashes[filePath] = c
+    return c
 def getFileHash(filePath, additionalData=None):
     hasher = HashAlgorithm()
     with open(filePath, 'rb') as inFile:
