@@ -898,7 +898,7 @@ def getCompilerHash(compilerBinary):
 
 def getFileHashes(filePaths):
     if 'CLCACHE_SERVER' in os.environ:
-        pipeName = r'\\.\pipe\clcache_srv'
+        pipeName = r'\\.\pipe\clcache_srv_{}'.format(os.environ.get('CLCACHE_SERVER'))
         while True:
             try:
                 with open(pipeName, 'w+b') as f:
