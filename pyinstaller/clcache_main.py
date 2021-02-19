@@ -1,2 +1,2 @@
-from clcache.__main__ import main
-main()
+from clcache.__main__ import mainWrapper
+mainWrapper()

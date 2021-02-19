@@ -146,7 +146,8 @@ def main():
 
     cache = HashCache(eventLoop, vars(args)['exclude'], args.disable_watching)
 
-    server = PipeServer(eventLoop, r'\\.\pipe\clcache_srv', cache)
+    pipeName = r'\\.\pipe\clcache_srv_{}'.format(os.environ.get('CLCACHE_SERVER'))
+    server = PipeServer(eventLoop, pipeName, cache)
     server.listen()
 
     signalHandle = pyuv.Signal(eventLoop)

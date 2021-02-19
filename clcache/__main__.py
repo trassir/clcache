@@ -26,7 +26,7 @@ import subprocess
 import sys
 import threading
 from tempfile import TemporaryFile
-from typing import Any, List, Tuple, Iterator
+from typing import Any, List, Tuple, Iterator, Dict
 from atomicwrites import atomic_write
 
 VERSION = "4.2.0-dev"
@@ -898,7 +898,7 @@ def getCompilerHash(compilerBinary):
 
 def getFileHashes(filePaths):
     if 'CLCACHE_SERVER' in os.environ:
-        pipeName = r'\\.\pipe\clcache_srv'
+        pipeName = r'\\.\pipe\clcache_srv_{}'.format(os.environ.get('CLCACHE_SERVER'))
         while True:
             try:
                 with open(pipeName, 'w+b') as f:
@@ -914,9 +914,15 @@ def getFileHashes(filePaths):
                 else:
                     raise
     else:
-        return [getFileHash(filePath) for filePath in filePaths]
+        return [getFileHashCached(filePath) for filePath in filePaths]
 
-
+knownHashes: Dict[str, str] = dict()
+def getFileHashCached(filePath):
+    if filePath in knownHashes:
+        return knownHashes[filePath]
+    c = getFileHash(filePath)
+    knownHashes[filePath] = c
+    return c
 def getFileHash(filePath, additionalData=None):
     hasher = HashAlgorithm()
     with open(filePath, 'rb') as inFile:
@@ -1693,21 +1699,33 @@ def scheduleJobs(cache: Any, compiler: str, cmdLine: List[str], environment: Any
 
     exitCode = 0
     cleanupRequired = False
-    with concurrent.futures.ThreadPoolExecutor(max_workers=jobCount(cmdLine)) as executor:
-        jobs = []
-        for (srcFile, srcLanguage), objFile in zip(sourceFiles, objectFiles):
-            jobCmdLine = baseCmdLine + [srcLanguage + srcFile]
-            jobs.append(executor.submit(
-                processSingleSource,
-                compiler, jobCmdLine, srcFile, objFile, environment))
-        for future in concurrent.futures.as_completed(jobs):
-            exitCode, out, err, doCleanup = future.result()
-            printTraceStatement("Finished. Exit code {0:d}".format(exitCode))
-            cleanupRequired |= doCleanup
-            printOutAndErr(out, err)
+    if os.getenv('CLCACHE_SINGLEFILE'):
+        assert len(sourceFiles) == 1
+        assert len(objectFiles) == 1
+        srcFile, srcLanguage = sourceFiles[0]
+        objFile = objectFiles[0]
+        jobCmdLine = baseCmdLine + [srcLanguage + srcFile]
+        exitCode, out, err, doCleanup = processSingleSource(
+            compiler, jobCmdLine, srcFile, objFile, environment)
+        printTraceStatement("Finished. Exit code {0:d}".format(exitCode))
+        cleanupRequired |= doCleanup
+        printOutAndErr(out, err)
+    else:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=jobCount(cmdLine)) as executor:
+            jobs = []
+            for (srcFile, srcLanguage), objFile in zip(sourceFiles, objectFiles):
+                jobCmdLine = baseCmdLine + [srcLanguage + srcFile]
+                jobs.append(executor.submit(
+                    processSingleSource,
+                    compiler, jobCmdLine, srcFile, objFile, environment))
+            for future in concurrent.futures.as_completed(jobs):
+                exitCode, out, err, doCleanup = future.result()
+                printTraceStatement("Finished. Exit code {0:d}".format(exitCode))
+                cleanupRequired |= doCleanup
+                printOutAndErr(out, err)
 
-            if exitCode != 0:
-                break
+                if exitCode != 0:
+                    break
 
     if cleanupRequired:
         cleanCache(cache)
@@ -1816,10 +1834,25 @@ def ensureArtifactsExist(cache, cachekey, reason, objectFile, compilerResult, ex
                 extraCallable()
     return returnCode, compilerOutput, compilerStderr, cleanupRequired
 
+class ProfilerError(Exception):
+    def __init__(self, returnCode):
+        self.returnCode = returnCode
 
-if __name__ == '__main__':
+def mainWrapper():
     if 'CLCACHE_PROFILE' in os.environ:
         INVOCATION_HASH = getStringHash(','.join(sys.argv))
-        cProfile.run('main()', filename='clcache-{}.prof'.format(INVOCATION_HASH))
+        CALL_SCRIPT = '''
+import clcache
+returnCode = clcache.__main__.main()
+if returnCode != 0:
+    raise clcache.__main__.ProfilerError(returnCode)
+'''
+        try:
+            cProfile.run(CALL_SCRIPT, filename='clcache-{}.prof'.format(INVOCATION_HASH))
+        except ProfilerError as e:
+            sys.exit(e.returnCode)
     else:
         sys.exit(main())
+
+if __name__ == '__main__':
+    mainWrapper()
